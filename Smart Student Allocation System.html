@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smart Student Allocation System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --sans:"IBM Plex Sans","IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;
+  --bg:#EDF0F4; --panel:#FFFFFF; --sunk:#F6F8FA; --ink:#15263A; --muted:#58697D; --line:#D3DAE3;
+  --brand:#1C5DA6; --brand-ink:#FFFFFF; --ok:#2C7A4B; --warn:#A86300; --crit:#B3261E; --info:#46698C;
+  --chip:#E4EBF3; --fri:#1C5DA6; --sat:#6B4DB3; --pre:#8E9BAA;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E161F; --panel:#16212C; --sunk:#111B25; --ink:#E3E9F0; --muted:#94A4B6; --line:#2A3847;
+    --brand:#6DA6E6; --brand-ink:#0E161F; --ok:#5DBE88; --warn:#E2A54A; --crit:#F07C72; --info:#8FB0D2;
+    --chip:#223140; --fri:#6DA6E6; --sat:#A58BE8; --pre:#5E6E80;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E161F; --panel:#16212C; --sunk:#111B25; --ink:#E3E9F0; --muted:#94A4B6; --line:#2A3847;
+  --brand:#6DA6E6; --brand-ink:#0E161F; --ok:#5DBE88; --warn:#E2A54A; --crit:#F07C72; --info:#8FB0D2;
+  --chip:#223140; --fri:#6DA6E6; --sat:#A58BE8; --pre:#5E6E80;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+/* stage rail */
+.rail{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:22px 14px;border-right:1px solid var(--line)}
+.brand{padding:0 10px 18px}
+.brand h1{font-size:17px;line-height:1.25;font-weight:700;margin:0;letter-spacing:-.005em}
+.brand p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.steps{list-style:none;margin:0;padding:0;position:relative}
+.steps::before{content:"";position:absolute;left:24px;top:22px;bottom:22px;width:1.5px;background:var(--line)}
+.step{position:relative;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;width:100%;padding:9px 10px;border:0;border-radius:8px;background:none;text-align:left;cursor:pointer}
+.step .n{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);background:var(--bg);display:grid;place-items:center;font-weight:600;font-size:13px}
+.step .t{font-weight:500;line-height:1.3;padding-top:3px}
+.step .s{display:block;font-size:12.5px;color:var(--muted);font-weight:400}
+.step.done .n{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.step.alert .s{color:var(--warn)}
+.step[aria-current="step"]{background:var(--panel);box-shadow:inset 3px 0 0 var(--brand)}
+.step:disabled{cursor:not-allowed;opacity:.45}
+.step:not(:disabled):hover{background:var(--panel)}
+/* main */
+main{padding:28px clamp(16px,3vw,40px) 80px;min-width:0}
+.head{margin-bottom:22px;max-width:76ch}
+h2{font-size:27px;line-height:1.2;font-weight:600;letter-spacing:-.012em;margin:0 0 6px}
+h3{font-size:16px;font-weight:600;margin:0 0 10px}
+.lede{color:var(--muted);margin:0}
+.section{margin-top:26px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:7px;border:1px solid var(--line);background:var(--panel);font-weight:500;cursor:pointer;text-decoration:none;line-height:1.3}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.quiet{border-color:transparent;background:none;color:var(--brand);padding-left:6px;padding-right:6px}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none}
+.btn.big{padding:11px 18px;font-size:15.5px}
+input[type=text],select{padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--panel);min-width:0}
+input[type=checkbox]{width:17px;height:17px;accent-color:var(--brand);vertical-align:-3px}
+.check{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.check span{line-height:1.45}
+/* uploads */
+.uploads{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:26px 22px;background:var(--panel);min-height:190px;display:flex;flex-direction:column;justify-content:center;gap:10px;transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 7%,var(--panel))}
+.drop.loaded{border-style:solid}
+.drop h3{margin:0;font-size:17px}
+.drop .meta{color:var(--muted);font-size:14px}
+.drop .fname{font-weight:500;word-break:break-all}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+/* tables */
+.tbl{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:middle}
+th{position:sticky;top:0;z-index:1;background:var(--sunk);font-weight:600;font-size:13px;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right}
+td.wrap{white-space:normal;min-width:260px}
+.req{color:var(--crit);font-weight:600}
+.sev{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.sev.critical,.sev.error{background:color-mix(in srgb,var(--crit) 14%,transparent);color:var(--crit)}
+.sev.warning{background:color-mix(in srgb,var(--warn) 15%,transparent);color:var(--warn)}
+.sev.info{background:color-mix(in srgb,var(--info) 15%,transparent);color:var(--info)}
+.sev.ok{background:color-mix(in srgb,var(--ok) 14%,transparent);color:var(--ok)}
+.gapbar{display:inline-block;width:90px;height:8px;border-radius:4px;background:var(--line);vertical-align:middle;margin-left:8px;position:relative;overflow:hidden}
+.gapbar i{position:absolute;top:0;bottom:0;left:0;border-radius:4px}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stat{background:var(--panel);padding:14px 16px;box-shadow:1px 0 0 var(--line),0 1px 0 var(--line)}
+.stat .v{font-size:26px;font-weight:600;line-height:1.15;letter-spacing:-.01em}
+.stat .l{font-size:13px;color:var(--muted);margin-top:2px}
+.stat.crit .v{color:var(--crit)} .stat.warn .v{color:var(--warn)} .stat.ok .v{color:var(--ok)}
+.callout{border-left:4px solid var(--warn);background:var(--panel);border-radius:0 10px 10px 0;padding:14px 18px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.callout.crit{border-left-color:var(--crit)}
+.callout.ok{border-left-color:var(--ok)}
+.callout p{margin:4px 0 0}
+.callout + .callout{margin-top:10px}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{padding:5px 12px;border-radius:99px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:13.5px}
+.pill[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.rules{margin:0;padding-left:22px}
+.rules li{margin:4px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+/* board */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:16px}
+.toolbar label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.toolbar select,.toolbar input{color:var(--ink);font-size:14.5px}
+.board{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;align-items:start}
+.wait{position:sticky;top:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;gap:8px}
+.wait.over,.gcard.over-drop{outline:2px dashed var(--brand);outline-offset:2px}
+.wait .chips{max-height:none;flex:1}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px}
+.gcard{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 11px 9px;display:flex;flex-direction:column;gap:7px}
+.gcard.full{border-color:color-mix(in srgb,var(--muted) 60%,var(--line))}
+.gcard.overcap{border-color:var(--crit)}
+.ghead{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ghead strong{font-size:14.5px}
+.day{font-size:12.5px;font-weight:600;white-space:nowrap}
+.day.friday{color:var(--fri)} .day.saturday{color:var(--sat)}
+.center{font-size:13px;color:var(--muted);line-height:1.35;min-height:1.35em}
+.seats{display:flex;flex-wrap:wrap;gap:2px}
+.seat{width:8px;height:13px;border-radius:2px;background:var(--line)}
+.seat.f{background:var(--ok)} .seat.p{background:var(--pre)} .seat.x{background:var(--crit)}
+.load{font-size:12.5px;color:var(--muted)}
+.chips{display:flex;flex-direction:column;gap:3px;max-height:250px;overflow:auto;min-height:28px}
+.chip{display:block;flex-shrink:0;width:100%;text-align:left;font-size:13px;padding:4px 8px;border-radius:5px;background:var(--chip);border:1px solid transparent;cursor:grab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.pri{border-color:var(--warn);box-shadow:inset 3px 0 0 var(--warn)}
+.chip.man{font-style:italic}
+.chip.hit{background:color-mix(in srgb,var(--brand) 26%,var(--chip))}
+.chip:active{cursor:grabbing}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);align-items:center}
+.legend i{display:inline-block;width:9px;height:13px;border-radius:2px;margin-right:5px;vertical-align:-2px}
+/* bars */
+.ubar{display:inline-block;width:120px;height:8px;border-radius:4px;background:var(--line);vertical-align:middle;margin-right:8px;overflow:hidden}
+.ubar i{display:block;height:100%;background:var(--brand)}
+/* dialog, toast, busy */
+dialog{border:1px solid var(--line);border-radius:12px;padding:0;background:var(--panel);color:var(--ink);width:min(520px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,18,28,.45)}
+.dlg{padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.dlg h3{margin:0;font-size:18px}
+.dlg select,.dlg input{width:100%}
+.dlg .warnline{color:var(--crit);font-weight:500}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:14px;z-index:50;max-width:calc(100vw - 32px);display:none;gap:12px;align-items:center}
+.toast.show{display:flex}
+.toast button{background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;padding:0}
+.busy{position:fixed;inset:0;background:color-mix(in srgb,var(--bg) 70%,transparent);display:none;place-items:center;z-index:60}
+.busy.show{display:grid}
+.busy div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 22px;font-weight:500}
+.audit{font-size:13.5px}
+.mapsel{min-width:200px}
+[dir=auto]{unicode-bidi:plaintext}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .rail{position:sticky;top:0;z-index:20;max-height:none;padding:10px 10px 8px;border-right:0;border-bottom:1px solid var(--line);background:var(--bg);overflow-x:auto}
+  .brand{display:none}
+  .steps{display:flex;gap:4px}
+  .steps::before{display:none}
+  .step{grid-template-columns:24px auto;padding:6px 10px;white-space:nowrap}
+  .step .n{width:24px;height:24px;font-size:12px}
+  .step .s{display:none}
+  .step[aria-current="step"]{box-shadow:inset 0 -3px 0 var(--brand)}
+  .board{grid-template-columns:1fr}
+  .wait{position:static;max-height:360px}
+  h2{font-size:23px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Workflow stages">
+    <div class="brand"><h1>Smart Student Allocation System</h1><p id="brandsub">Offline training placement</p></div>
+    <ol class="steps" id="steps"></ol>
+  </nav>
+  <main id="view" tabindex="-1"></main>
+</div>
+<dialog id="dlg"></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="busy" id="busy"><div id="busymsg">Working</div></div>
+
+<script id="engine">
+/* ======================================================================
+   Engine: pure functions, no DOM. Mirrors allocation_engine.py.
+   ====================================================================== */
+const DAY_RANK={friday:0,saturday:1,sunday:2,monday:3,tuesday:4,wednesday:5,thursday:6};
+const DAY_ALIAS={'الجمعة':'friday','الجمعه':'friday','السبت':'saturday','الأحد':'sunday','الاحد':'sunday','الاثنين':'monday','الإثنين':'monday','الثلاثاء':'tuesday','الأربعاء':'wednesday','الاربعاء':'wednesday','الخميس':'thursday',fri:'friday',sat:'saturday',sun:'sunday',mon:'monday',tue:'tuesday',wed:'wednesday',thu:'thursday'};
+const isBlank=v=>v==null||(typeof v==='number'&&isNaN(v))||String(v).trim()==='';
+function normKey(v){if(isBlank(v))return null;return String(v).trim().toLowerCase().replace(/[\s\-]+/g,'_')||null}
+function normText(v){if(isBlank(v))return null;return String(v).replace(/\s+/g,' ').trim()||null}
+function normBool(v){if(v===true)return true;if(typeof v==='number')return v===1;return ['1','true','yes','y','نعم','x'].includes(normKey(v))}
+function normDay(v){const k=normKey(v);if(!k)return null;return DAY_ALIAS[k]||k}
+const pad2=n=>String(n).padStart(2,'0');
+function normTime(v){
+  if(isBlank(v))return null;
+  if(typeof v==='number'){
+    if(Number.isInteger(v)&&v>=0&&v<=23)return pad2(v)+':00';
+    const m=Math.round((v-Math.floor(v))*1440)%1440;return pad2(Math.floor(m/60))+':'+pad2(m%60);
+  }
+  const m=String(v).trim().match(/^(\d{1,2})[:.](\d{2})(?::\d{2})?\s*([ap])?\.?m?\.?/i);
+  if(!m)return null;let h=+m[1];const ap=m[3]&&m[3].toLowerCase();
+  if(ap==='p'&&h<12)h+=12;if(ap==='a'&&h===12)h=0;if(h>23||+m[2]>59)return null;
+  return pad2(h)+':'+m[2];
+}
+function defaultPrefix(level){
+  if(!level)return '';if(level==='first')return 'L1';if(level==='second')return 'L2';
+  const m=level.match(/^(third|forth|fourth|fifth)_(.+)$/);if(!m)return '';
+  const n={third:3,forth:4,fourth:4,fifth:5}[m[1]];
+  const t={ai:'DA',cyber_security:'CY',cyber:'CY',web:'WB',digital:'DT',embedded:'EM'}[m[2]];
+  return t?`L${n}${t}`:'';
+}
+const prefixOf=code=>code?String(code).split('_')[0].toUpperCase():null;
+
+function prepareStudents(rows,map,levelMap){
+  const issues=[],out=[],seen=new Map(),hasId=!!map.student_id;
+  const get=(r,k)=>map[k]?r[map[k]]:null;
+  rows.forEach((r,i)=>{
+    const row=i+2,name=normText(get(r,'name')),id=normText(get(r,'student_id'));
+    const city=normKey(get(r,'city')),level=normKey(get(r,'level'));
+    const sid=id||('ROW-'+String(row).padStart(6,'0'));
+    const s={i,row,id:sid,name,city,level,prefix:level?(levelMap[level]||null):null,
+      vip:normBool(get(r,'is_vip')),dis:normBool(get(r,'is_disability')),mar:normBool(get(r,'is_martyr_son')),valid:true,raw:r};
+    s.pri=s.vip||s.dis||s.mar;
+    const err=(code,msg)=>{issues.push({entity:'Student',row,key:sid,sev:'error',code,msg});s.valid=false};
+    if(!name)err('MISSING_NAME','Name is empty');
+    if(!city)err('MISSING_CITY','City is empty');
+    if(!level)err('MISSING_LEVEL','Level is empty');
+    else if(!s.prefix)err('UNMAPPED_LEVEL',`Level "${level}" has no group prefix in the level map`);
+    const dk=hasId?id:(name&&city?name.toLowerCase()+'|'+city:null);
+    if(dk){
+      if(seen.has(dk)){
+        if(hasId)err('DUPLICATE_ID',`Same student ID as row ${seen.get(dk)}; this row is left out`);
+        else issues.push({entity:'Student',row,key:sid,sev:'warning',code:'POSSIBLE_DUPLICATE',msg:`Same name and city as row ${seen.get(dk)}`});
+      }else seen.set(dk,row);
+    }
+    out.push(s);
+  });
+  return {students:out,issues};
+}
+
+function prepareGroups(rows,map,respectCurrent){
+  const issues=[],out=[],seen=new Set();
+  const get=(r,k)=>map[k]?r[map[k]]:null;
+  rows.forEach((r,i)=>{
+    const row=i+2,code=normText(get(r,'group_code'));
+    const g={gi:i,row,code,city:normKey(get(r,'city')),prefix:prefixOf(code),
+      center:normText(get(r,'center_name'))||normText(get(r,'center_code')),centerCode:normText(get(r,'center_code')),
+      day:normDay(get(r,'day')),start:normTime(get(r,'start_time')),end:normTime(get(r,'end_time')),valid:true,enrolled:[],raw:r};
+    const key=code||('row '+row);
+    const bad=(sev,c,msg)=>{issues.push({entity:'Group',row,key,sev,code:c,msg});if(sev==='error')g.valid=false};
+    if(!code)bad('error','MISSING_GROUP_CODE','Group code is empty');
+    else if(seen.has(code))bad('error','DUPLICATE_GROUP_CODE','Group code appears more than once');
+    if(code)seen.add(code);
+    if(!g.city)bad('error','MISSING_CITY','City is empty');
+    const rawCap=get(r,'max_capacity');let cap=isBlank(rawCap)?NaN:Number(rawCap);
+    if(isNaN(cap)){bad('error','MISSING_CAPACITY','Max Capacity is missing or not a number');cap=0}
+    else if(cap<=0)bad('error','NON_POSITIVE_CAPACITY',`Max Capacity is ${cap}`);
+    cap=Math.floor(Math.max(cap,0));
+    const rawCur=get(r,'current_capacity');let cur=isBlank(rawCur)?0:Number(rawCur);if(isNaN(cur))cur=0;
+    if(cur>cap&&cap>0)bad('warning','CURRENT_EXCEEDS_MAX',`Already booked ${cur} is more than Max ${cap}`);
+    if(!(g.day in DAY_RANK))bad('error','INVALID_DAY',g.day?`Day "${get(r,'day')}" is not a weekday`:'Day is missing');
+    if(!g.start)bad('error','MISSING_TIME','Start time is missing or unreadable');
+    g.max=cap;g.booked=Math.max(0,Math.min(cur,cap));g.pre=respectCurrent?g.booked:0;
+    out.push(g);
+  });
+  return {groups:out,issues};
+}
+
+const bkey=(c,p)=>c+'|'+p;
+const slotKey=g=>[DAY_RANK[g.day],g.start||'',g.centerCode||g.center||'',g.code];
+function cmpArr(a,b){for(let i=0;i<a.length;i++){if(a[i]<b[i])return -1;if(a[i]>b[i])return 1}return 0}
+function bucketize(groups){
+  const b=new Map();
+  for(const g of groups){if(!g.valid)continue;const k=bkey(g.city,g.prefix);if(!b.has(k))b.set(k,[]);b.get(k).push(g)}
+  for(const v of b.values())v.sort((x,y)=>cmpArr(slotKey(x),slotKey(y)));
+  return b;
+}
+
+function dryRun(students,groups){
+  const demand=new Map(),prio=new Map(),seats=new Map();
+  const inc=(m,k,n)=>m.set(k,(m.get(k)||0)+n);
+  for(const s of students)if(s.valid){const k=bkey(s.city,s.prefix);inc(demand,k,1);inc(prio,k,s.pri?1:0)}
+  for(const g of groups)if(g.valid)inc(seats,bkey(g.city,g.prefix),g.max-g.pre);
+  const keys=[...new Set([...demand.keys(),...seats.keys()])].sort();
+  const rows=keys.map(k=>{
+    const [city,prefix]=k.split('|');const d=demand.get(k)||0,c=seats.get(k)||0,p=prio.get(k)||0;
+    let sev,msg;
+    if(d&&!c){sev='critical';msg=`${d} '${prefix}' students in ${city}, but zero '${prefix}' groups exist there`}
+    else if(p>c){sev='critical';msg=`${p} priority students but only ${c} seats; some priority students will be waitlisted`}
+    else if(d>c){sev='warning';msg=`${d} '${prefix}' students but only ${c} seats; ${d-c} will be waitlisted`}
+    else if(c&&!d){sev='info';msg=`${c} seats with no students`}
+    else{sev='ok';msg=`${c-d} spare seats`}
+    return {city,prefix,demand:d,priority:p,seats:c,gap:c-d,sev,msg};
+  });
+  // national sibling-track check: a short prefix next to a same-level prefix with spare seats
+  const D={},C={};
+  for(const r of rows){D[r.prefix]=(D[r.prefix]||0)+r.demand;C[r.prefix]=(C[r.prefix]||0)+r.seats}
+  const lvl=p=>(String(p).match(/^L(\d+)/)||[])[1];
+  const hints=[],taken=new Set();
+  const shorts=Object.keys(D).filter(a=>lvl(a)&&D[a]-(C[a]||0)>=20).sort((x,y)=>(D[y]-(C[y]||0))-(D[x]-(C[x]||0)));
+  for(const a of shorts){
+    const short=D[a]-(C[a]||0);let best=null;
+    for(const b of Object.keys(C)){
+      if(b===a||taken.has(b)||lvl(b)!==lvl(a))continue;const sur=C[b]-(D[b]||0);
+      if(sur>=Math.max(20,short*0.5)&&(!best||sur>best.sur))best={a,b,da:D[a],ca:C[a]||0,db:D[b]||0,cb:C[b],short,sur};
+    }
+    if(best){hints.push(best);taken.add(best.b)}
+  }
+  const waitlist=rows.reduce((t,r)=>t+Math.max(0,-r.gap),0);
+  return {rows,hints,waitlist,demand:rows.reduce((t,r)=>t+r.demand,0),seats:rows.reduce((t,r)=>t+r.seats,0),
+    critical:rows.filter(r=>r.sev==='critical').length,warning:rows.filter(r=>r.sev==='warning').length};
+}
+
+function allocate(students,groups){
+  for(const g of groups)g.enrolled=[];
+  const buckets=bucketize(groups),cursor=new Map();
+  const order=students.slice().sort((a,b)=>(a.pri===b.pri?0:a.pri?-1:1)||cmpStr(a.city,b.city)||cmpStr(a.level,b.level)||a.i-b.i);
+  const assign=new Array(students.length);
+  for(const s of order){
+    if(!s.valid){assign[s.i]={status:'Waitlisted',reason:'INVALID_RECORD',g:-1,src:'engine'};continue}
+    const k=bkey(s.city,s.prefix),slots=buckets.get(k);
+    if(!slots){assign[s.i]={status:'Waitlisted',reason:'NO_GROUP_FOR_LEVEL_IN_CITY',g:-1,src:'engine'};continue}
+    let i=cursor.get(k)||0;
+    while(i<slots.length&&slots[i].enrolled.length+slots[i].pre>=slots[i].max)i++;
+    cursor.set(k,i);
+    if(i===slots.length){assign[s.i]={status:'Waitlisted',reason:'CAPACITY_FULL',g:-1,src:'engine'};continue}
+    slots[i].enrolled.push(s.i);
+    assign[s.i]={status:'Assigned',reason:null,g:slots[i].gi,src:'engine'};
+  }
+  return assign;
+}
+function cmpStr(a,b){a=a||'';b=b||'';return a<b?-1:a>b?1:0}
+
+function verify(groups){
+  let over=0,dayOrder=0;
+  for(const g of groups)if(g.valid&&g.enrolled.length+g.pre>g.max)over++;
+  for(const slots of bucketize(groups).values()){
+    let minFree=99,maxUsed=-1;
+    for(const g of slots){const r=DAY_RANK[g.day];if(g.enrolled.length+g.pre<g.max)minFree=Math.min(minFree,r);if(g.enrolled.length)maxUsed=Math.max(maxUsed,r)}
+    if(maxUsed>minFree)dayOrder++;
+  }
+  return {over,dayOrder};
+}
+
+function kpis(students,groups,assign){
+  const assigned=assign.filter(a=>a.status==='Assigned').length;
+  const seats=groups.reduce((t,g)=>t+(g.valid?g.max-g.pre:0),0);
+  return {total:students.length,assigned,waitlisted:students.length-assigned,seats,
+    util:seats?assigned/seats:0,priority:students.filter(s=>s.pri).length,
+    priWait:students.filter(s=>s.pri&&assign[s.i].status!=='Assigned').length};
+}
+if(typeof module!=='undefined')module.exports={normKey,normTime,defaultPrefix,prepareStudents,prepareGroups,dryRun,allocate,verify,kpis};
+</script>
+
+<script>
+/* ======================================================================
+   App state and UI
+   ====================================================================== */
+const FIELDS={
+  students:[
+    {k:'student_id',label:'Student ID',req:false,syn:['student_id','studentid','national_id','nationalid','id']},
+    {k:'name',label:'Name',req:true,syn:['full_name','fullname','name','student_name','studentname','الاسم']},
+    {k:'city',label:'City',req:true,syn:['city','city_name','cityname','governorate','المحافظة','المدينة']},
+    {k:'level',label:'Level',req:true,syn:['level','specialization','track','المستوى']},
+    {k:'is_vip',label:'VIP',req:false,syn:['is_vip','isvip','vip']},
+    {k:'is_disability',label:'Disability',req:false,syn:['is_disability','isdisability','disability','special_needs','specialneeds']},
+    {k:'is_martyr_son',label:'Son of martyr',req:false,syn:['is_martyr_son','ismartyrson','son_of_martyr','sonofmartyr','martyr']},
+  ],
+  groups:[
+    {k:'group_code',label:'Group code',req:true,syn:['group_code','groupcode','group']},
+    {k:'city',label:'City',req:true,syn:['city','city_name','cityname','governorate','المحافظة']},
+    {k:'max_capacity',label:'Max capacity',req:true,syn:['max_capacity','maxcapacity','capacity']},
+    {k:'current_capacity',label:'Already booked',req:false,syn:['current_capacity','currentcapacity','booked','already_booked']},
+    {k:'center_name',label:'Center name',req:false,syn:['center_name','centername','center','venue']},
+    {k:'center_code',label:'Center code',req:false,syn:['center_code','centercode']},
+    {k:'day',label:'Day',req:true,syn:['slot_1_day','slot1day','day','اليوم']},
+    {k:'start_time',label:'Start time',req:true,syn:['slot_1_start','slot1start','start_time','starttime','start','time','التوقيت']},
+    {k:'end_time',label:'End time',req:false,syn:['slot_1_end','slot1end','end_time','endtime','end']},
+  ]
+};
+const STAGES=[
+  {n:1,t:'Upload'},{n:2,t:'Check data'},{n:3,t:'Mapping'},{n:4,t:'Dry run'},
+  {n:5,t:'Allocate'},{n:6,t:'Adjust'},{n:7,t:'Reports'}
+];
+const REASON={CAPACITY_FULL:'All matching groups full',NO_GROUP_FOR_LEVEL_IN_CITY:'No group for this level in this city',
+  INVALID_RECORD:'Data error in the uploaded row',MANUAL_UNASSIGN:'Moved to waitlist by admin',MANUAL_MOVE:'Moved by admin',ADMIN_OVERRIDE:'Admin override, over capacity'};
+
+const S={stage:1,raw:{students:null,groups:null},colmap:{students:{},groups:{}},levelMap:{},respectCurrent:false,
+  students:[],groups:[],issues:[],norm:null,sim:null,result:null,audit:[],ack:false,
+  dl:undefined,ui:{issueFilter:'all',simSev:'actionable',simCity:'all',board:{city:'',prefix:'',day:'all',q:''}}};
+
+const $=s=>document.querySelector(s);
+const fmt=n=>Number(n).toLocaleString('en-US');
+const pct=x=>(x*100).toFixed(1)+'%';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const title=s=>s?s.charAt(0).toUpperCase()+s.slice(1):'';
+const used=g=>g.enrolled.length+g.pre;
+
+/* capabilities: file downloads */
+(async()=>{try{S.dl=(window.claude&&typeof window.claude.use==='function')?await window.claude.use('downloads'):null}catch(e){S.dl=null}render()})();
+
+let toastTimer;
+function toast(msg,undo){
+  const t=$('#toast');t.innerHTML=`<span>${esc(msg)}</span>`+(undo?'<button type="button" id="toastundo">Undo</button>':'');
+  t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),undo?6000:3500);
+  if(undo)$('#toastundo').onclick=()=>{t.classList.remove('show');undoLast()};
+}
+async function busy(msg,fn){$('#busymsg').textContent=msg;$('#busy').classList.add('show');await new Promise(r=>setTimeout(r,40));
+  try{return await fn()}finally{$('#busy').classList.remove('show')}}
+
+/* ---------- presets (per-browser convenience) ---------- */
+function loadPresets(){try{return JSON.parse(localStorage.getItem('ssa.presets')||'{}')}catch(e){return {}}}
+function savePresets(p){try{localStorage.setItem('ssa.presets',JSON.stringify(p));return true}catch(e){return false}}
+
+/* ---------- file parsing ---------- */
+function sheetToRows(ws){
+  const aoa=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,blankrows:false,raw:true});
+  if(!aoa.length)return {headers:[],rows:[]};
+  const seen={};const headers=aoa[0].map((h,i)=>{let n=isBlank(h)?`Column ${i+1}`:String(h).trim();if(seen[n]){seen[n]++;n+=` (${seen[n]})`}else seen[n]=1;return n});
+  const rows=[];
+  for(let r=1;r<aoa.length;r++){const a=aoa[r];if(!a.some(v=>!isBlank(v)))continue;const o={};for(let c=0;c<headers.length;c++)o[headers[c]]=a[c]??null;rows.push(o)}
+  return {headers,rows};
+}
+function pickSheet(wb,kind){
+  const re=kind==='students'?/student|طلاب|طالب/i:/group|venue|class|مجموع/i;
+  const named=wb.SheetNames.find(n=>re.test(n));
+  if(named)return named;
+  return wb.SheetNames.find(n=>{const ws=wb.Sheets[n];return ws['!ref']})||wb.SheetNames[0];
+}
+function hn(h){return String(h).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,'')}
+function autoMap(kind,headers){
+  const m={},usedH=new Set();
+  for(const f of FIELDS[kind]){
+    const syn=f.syn.map(hn);
+    let h=headers.find(x=>!usedH.has(x)&&syn.includes(hn(x)));
+    if(!h)h=headers.find(x=>!usedH.has(x)&&syn.some(s=>s.length>4&&hn(x).includes(s)));
+    if(h){m[f.k]=h;usedH.add(h)}
+  }
+  return m;
+}
+async function readWorkbook(file){
+  if(typeof XLSX==='undefined')throw new Error('The spreadsheet reader did not load. Check your connection and reload the page.');
+  const isCsv=/\.(csv|txt)$/i.test(file.name);
+  if(isCsv){const text=await file.text();return XLSX.read(text,{type:'string',raw:true})}
+  return XLSX.read(await file.arrayBuffer(),{type:'array'});
+}
+function setRaw(kind,source,sheet,parsed){
+  const prev=S.raw[kind];
+  S.raw[kind]={file:source,sheet,headers:parsed.headers,rows:parsed.rows};
+  if(!prev||prev.headers.join('\u0001')!==parsed.headers.join('\u0001'))S.colmap[kind]=autoMap(kind,parsed.headers);
+}
+async function loadFile(kind,file){
+  await busy(`Reading ${file.name}`,async()=>{
+    let wb;try{wb=await readWorkbook(file)}catch(e){toast(e.message||'This file could not be read. Save it as .xlsx or .csv and try again.');return}
+    const sheet=pickSheet(wb,kind);const parsed=sheetToRows(wb.Sheets[sheet]);
+    if(!parsed.rows.length){toast(`No rows found in sheet "${sheet}".`);return}
+    setRaw(kind,file.name,sheet,parsed);
+    const other=kind==='students'?'groups':'students';
+    const otherSheet=wb.SheetNames.find(n=>(other==='groups'?/group|venue/i:/student/i).test(n));
+    let extra='';
+    if(otherSheet&&otherSheet!==sheet&&!S.raw[other]){
+      const p2=sheetToRows(wb.Sheets[otherSheet]);if(p2.rows.length){setRaw(other,file.name,otherSheet,p2);extra=` Also loaded ${fmt(p2.rows.length)} ${other} from sheet "${otherSheet}".`}
+    }
+    rebuild(true);toast(`Loaded ${fmt(parsed.rows.length)} ${kind} from "${sheet}".${extra}`);
+  });
+  render();
+}
+
+/* ---------- pipeline ---------- */
+function mappingComplete(kind){return FIELDS[kind].every(f=>!f.req||S.colmap[kind][f.k])}
+function syncLevelMap(){
+  const lc=S.colmap.students.level;if(!S.raw.students||!lc)return;
+  for(const r of S.raw.students.rows){const l=normKey(r[lc]);if(l&&!(l in S.levelMap))S.levelMap[l]=defaultPrefix(l)}
+}
+function normalizationReport(){
+  const out=[];
+  const scan=(kind,field,label)=>{
+    const col=S.colmap[kind][field];if(!S.raw[kind]||!col)return;
+    const m=new Map();let changed=0;
+    for(const r of S.raw[kind].rows){const v=r[col];if(isBlank(v))continue;const raw=String(v);const k=normKey(raw);if(k!==raw)changed++;if(!m.has(k))m.set(k,new Set());m.get(k).add(raw)}
+    const merges=[...m].filter(([k,v])=>v.size>1).map(([k,v])=>({key:k,variants:[...v]}));
+    out.push({label,changed,distinct:m.size,merges});
+  };
+  scan('students','city','Student cities');scan('students','level','Student levels');scan('groups','city','Group cities');
+  return out;
+}
+function rebuild(clearResult){
+  S.issues=[];S.students=[];S.groups=[];S.sim=null;
+  if(clearResult){S.result=null;S.audit=[];S.ack=false}
+  syncLevelMap();
+  if(S.raw.students&&mappingComplete('students')){const r=prepareStudents(S.raw.students.rows,S.colmap.students,S.levelMap);S.students=r.students;S.issues.push(...r.issues)}
+  if(S.raw.groups&&mappingComplete('groups')){const r=prepareGroups(S.raw.groups.rows,S.colmap.groups,S.respectCurrent);S.groups=r.groups;S.issues.push(...r.issues)}
+  S.norm=normalizationReport();
+  if(S.students.length&&S.groups.length)S.sim=dryRun(S.students,S.groups);
+}
+function changeSettings(fn){
+  const had=!!S.result,moves=S.audit.length;fn();rebuild(true);
+  if(had)toast(`Settings changed, so the allocation was cleared${moves?` along with ${moves} manual move${moves>1?'s':''}`:''}. Run it again in stage 5.`);
+  render();
+}
+
+/* ---------- stage availability ---------- */
+function stageState(n){
+  const both=S.raw.students&&S.raw.groups,mapped=mappingComplete('students')&&mappingComplete('groups');
+  const errs=S.issues.filter(i=>i.sev==='error').length,unmapped=Object.values(S.levelMap).filter(v=>!v).length;
+  switch(n){
+    case 1:return {on:true,done:!!both,s:both?'Both files loaded':(S.raw.students||S.raw.groups)?'One file loaded':'Waiting for files'};
+    case 2:return {on:!!both,done:!!both&&mapped,alert:errs>0,s:!both?'Needs both files':!mapped?'Finish mapping':errs?`${fmt(errs)} row${errs>1?'s':''} with errors`:'No errors'};
+    case 3:return {on:!!both,done:mapped&&!unmapped,alert:!mapped||unmapped>0,s:!both?'Needs both files':!mapped?'Required columns missing':unmapped?`${unmapped} levels unmapped`:'Complete'};
+    case 4:return {on:!!S.sim,done:!!S.result,alert:S.sim&&S.sim.critical>0,s:!S.sim?'Needs mapping':`${S.sim.critical} critical, ${S.sim.warning} warnings`};
+    case 5:return {on:!!S.sim,done:!!S.result,s:S.result?'Done':'Not run yet'};
+    case 6:return {on:!!S.result,done:S.audit.length>0,s:!S.result?'Run allocation first':S.audit.length?`${S.audit.length} manual moves`:'No moves yet'};
+    case 7:return {on:!!S.result,done:false,s:!S.result?'Run allocation first':'Ready to export'};
+  }
+}
+function go(n){if(!stageState(n).on)return;S.stage=n;render();window.scrollTo(0,0);$('#view').focus({preventScroll:true})}
+
+/* ---------- render ---------- */
+function render(){
+  $('#steps').innerHTML=STAGES.map(st=>{const x=stageState(st.n);
+    return `<li><button type="button" class="step ${x.done?'done':''} ${x.alert?'alert':''}" data-go="${st.n}" ${x.on?'':'disabled'} ${S.stage===st.n?'aria-current="step"':''}>
+      <span class="n">${st.n}</span><span class="t">${st.t}<span class="s">${esc(x.s)}</span></span></button></li>`}).join('');
+  $('#brandsub').textContent=S.raw.students||S.raw.groups?`${fmt(S.raw.students?S.raw.students.rows.length:0)} students, ${fmt(S.raw.groups?S.raw.groups.rows.length:0)} groups`:'Offline training placement';
+  const v=$('#view');
+  v.innerHTML=[null,vUpload,vCheck,vMapping,vDry,vAllocate,vAdjust,vReports][S.stage]();
+}
+
+/* Stage 1 */
+function dropZone(kind){
+  const r=S.raw[kind],label=kind==='students'?'Students':'Groups';
+  const hint=kind==='students'?'Name, city, level, and optional priority flags':'Group code, city, max capacity, day and time';
+  return `<div class="drop ${r?'loaded':''}" data-drop="${kind}">
+    <h3>${label} file</h3>
+    ${r?`<div class="fname">${esc(r.file)}</div><div class="meta">Sheet "${esc(r.sheet)}", ${fmt(r.rows.length)} rows, ${r.headers.length} columns</div>`
+       :`<div class="meta">${hint}. Drop an .xlsx or .csv file here.</div>`}
+    <div class="row"><label class="btn filebtn ${r?'':'primary'}">${r?'Replace file':'Choose file'}<input type="file" accept=".xlsx,.xls,.csv" data-file="${kind}"></label></div>
+  </div>`;
+}
+function vUpload(){
+  const dlNote=S.dl===null?'<p class="small muted">File downloads aren\'t available in this view, so templates and exports are disabled here.</p>':'';
+  return `<div class="head"><h2>Upload students and groups</h2>
+    <p class="lede">Files are read in this browser and never uploaded anywhere. If one workbook holds both a Students and a Groups sheet, drop it once and both load.</p></div>
+    <div class="uploads">${dropZone('students')}${dropZone('groups')}</div>
+    <div class="section grid2">
+      <div class="panel"><h3>Standard templates</h3><p class="muted small" style="margin:0 0 12px">Column names that map automatically, with an example row and filling notes.</p>
+        <div class="row"><button class="btn" data-act="tpl-students" ${S.dl===null?'disabled':''}>Download students template</button><button class="btn" data-act="tpl-groups" ${S.dl===null?'disabled':''}>Download groups template</button></div>${dlNote}</div>
+      <div class="panel"><h3>No files yet?</h3><p class="muted small" style="margin:0 0 12px">Load 3,000 made-up students and matching groups, seeded with the kinds of problems each stage is built to catch.</p>
+        <button class="btn" data-act="demo">Load demo data</button></div>
+    </div>
+    ${S.raw.students&&S.raw.groups?`<div class="section"><button class="btn primary big" data-go="2">Check the data</button></div>`:''}`;
+}
+
+/* Stage 2 */
+function vCheck(){
+  if(!mappingComplete('students')||!mappingComplete('groups'))
+    return `<div class="head"><h2>Check data</h2><p class="lede">Some required columns couldn't be matched automatically.</p></div><button class="btn primary" data-go="3">Map the columns</button>`;
+  const iss=S.issues,count=(e,s)=>iss.filter(i=>i.entity===e&&i.sev===s).length;
+  const codes=[...new Set(iss.map(i=>i.code))].sort();
+  const f=S.ui.issueFilter,list=f==='all'?iss:iss.filter(i=>i.code===f);
+  const shown=list.slice(0,500);
+  const norm=S.norm.map(n=>`<div><strong>${esc(n.label)}</strong><div class="small muted">${fmt(n.distinct)} distinct after normalizing, ${fmt(n.changed)} values trimmed or re-cased</div>
+    ${n.merges.length?`<ul class="small" style="margin:6px 0 0;padding-left:18px">${n.merges.slice(0,8).map(m=>`<li><strong>${esc(m.key)}</strong> from ${m.variants.map(v=>`"${esc(v)}"`).join(', ')}</li>`).join('')}${n.merges.length>8?`<li>and ${n.merges.length-8} more</li>`:''}</ul>`:'<div class="small muted">No conflicting spellings</div>'}</div>`).join('');
+  return `<div class="head"><h2>Check data</h2><p class="lede">Rows with errors are left out of the allocation and listed in the exceptions report. Warnings are allocated normally but worth a look.</p></div>
+    <div class="stats">
+      <div class="stat"><div class="v">${fmt(S.students.length)}</div><div class="l">Student rows</div></div>
+      <div class="stat ${count('Student','error')?'crit':'ok'}"><div class="v">${fmt(count('Student','error'))}</div><div class="l">Student errors</div></div>
+      <div class="stat ${count('Student','warning')?'warn':''}"><div class="v">${fmt(count('Student','warning'))}</div><div class="l">Student warnings</div></div>
+      <div class="stat"><div class="v">${fmt(S.groups.length)}</div><div class="l">Group rows</div></div>
+      <div class="stat ${count('Group','error')?'crit':'ok'}"><div class="v">${fmt(count('Group','error'))}</div><div class="l">Group errors</div></div>
+      <div class="stat ${count('Group','warning')?'warn':''}"><div class="v">${fmt(count('Group','warning'))}</div><div class="l">Group warnings</div></div>
+    </div>
+    ${!S.colmap.students.student_id?`<div class="section callout"><strong>No student ID column</strong><p>Duplicates are checked by name and city, which can't tell twins apart from double registrations. Students get row-based IDs like ROW-000002. Add a student_id column to the template for reliable checks.</p></div>`:''}
+    <div class="section panel"><h3>Normalization</h3><div class="grid2">${norm}</div></div>
+    <div class="section">
+      <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Issues</h3><span class="spacer"></span>
+        <label class="small muted">Show <select data-ui="issueFilter"><option value="all">All issues (${fmt(iss.length)})</option>${codes.map(c=>`<option value="${c}" ${f===c?'selected':''}>${c} (${fmt(iss.filter(i=>i.code===c).length)})</option>`).join('')}</select></label></div>
+      ${iss.length?`<div class="tbl"><table><thead><tr><th>File</th><th class="num">Row</th><th>Record</th><th>Severity</th><th>Issue</th><th>Detail</th></tr></thead><tbody>
+      ${shown.map(i=>`<tr><td>${i.entity}</td><td class="num">${i.row}</td><td dir="auto">${esc(i.key)}</td><td><span class="sev ${i.sev}">${i.sev}</span></td><td>${i.code}</td><td class="wrap">${esc(i.msg)}</td></tr>`).join('')}
+      </tbody></table></div>${list.length>500?`<p class="small muted">Showing the first 500 of ${fmt(list.length)}. All of them are in the exceptions export.</p>`:''}`
+      :'<div class="empty">No issues found in either file.</div>'}
+    </div>
+    <div class="section"><button class="btn primary big" data-go="3">Review mapping</button></div>`;
+}
+
+/* Stage 3 */
+function sampleValue(kind,col){if(!col)return '';const r=S.raw[kind].rows.find(r=>!isBlank(r[col]));return r?String(r[col]).slice(0,40):''}
+function colTable(kind){
+  const hs=S.raw[kind].headers;
+  return `<div class="tbl" style="max-height:none"><table><thead><tr><th>System field</th><th>Column in your file</th><th>Example value</th></tr></thead><tbody>
+  ${FIELDS[kind].map(f=>{const c=S.colmap[kind][f.k]||'';
+    return `<tr><td>${f.label}${f.req?' <span class="req" title="Required">*</span>':''}</td>
+    <td><select class="mapsel" data-map="${kind}" data-field="${f.k}" aria-label="${f.label} column"><option value="">${f.req?'Choose a column':'Not in file'}</option>${hs.map(h=>`<option ${h===c?'selected':''}>${esc(h)}</option>`).join('')}</select></td>
+    <td class="muted" dir="auto">${esc(sampleValue(kind,c))}</td></tr>`}).join('')}
+  </tbody></table></div>`;
+}
+function vMapping(){
+  const lc=S.colmap.students.level;
+  const counts={};if(lc)for(const r of S.raw.students.rows){const l=normKey(r[lc]);if(l)counts[l]=(counts[l]||0)+1}
+  const gp={};for(const g of S.groups)if(g.prefix)gp[g.prefix]=(gp[g.prefix]||0)+1;
+  const prefixes=Object.keys(gp).sort();
+  const levels=Object.keys(S.levelMap).filter(l=>counts[l]).sort((a,b)=>counts[b]-counts[a]);
+  const presets=loadPresets(),pnames=Object.keys(presets).sort();
+  const booked=S.groups.reduce((t,g)=>t+(g.valid?g.booked:0),0);
+  return `<div class="head"><h2>Mapping and settings</h2><p class="lede">Match your columns to what the system needs, then tell it which group prefix each student level goes to. Changes re-check the data immediately.</p></div>
+  <div class="grid2"><div><h3>Students columns</h3>${colTable('students')}</div><div><h3>Groups columns</h3>${colTable('groups')}</div></div>
+  <div class="section">
+    <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Level to group prefix</h3><span class="spacer"></span>
+      ${pnames.length?`<select id="presetSel" aria-label="Saved presets">${pnames.map(n=>`<option>${esc(n)}</option>`).join('')}</select><button class="btn" data-act="preset-load">Apply preset</button><button class="btn quiet" data-act="preset-del">Delete</button>`:''}
+      <input type="text" id="presetName" placeholder="Preset name" aria-label="Preset name" style="width:160px"><button class="btn" data-act="preset-save">Save as preset</button></div>
+    <p class="small muted" style="margin:0 0 10px">The prefix is the part of the group code before the underscore, so L3WB_005 has prefix L3WB. Presets are saved in this browser.</p>
+    <datalist id="prefixes">${prefixes.map(p=>`<option value="${p}">`).join('')}</datalist>
+    <div class="tbl"><table><thead><tr><th>Student level</th><th class="num">Students</th><th>Group prefix</th><th class="num">Groups with prefix</th><th>Status</th></tr></thead><tbody>
+    ${levels.map(l=>{const p=S.levelMap[l]||'',n=gp[p]||0;
+      return `<tr><td>${esc(l)}</td><td class="num">${fmt(counts[l])}</td>
+      <td><input type="text" list="prefixes" value="${esc(p)}" data-level="${esc(l)}" aria-label="Prefix for ${esc(l)}" style="width:110px;text-transform:uppercase"></td>
+      <td class="num">${p?fmt(n):''}</td>
+      <td>${!p?'<span class="sev error">Unmapped</span>':!n?'<span class="sev warning">No groups use this prefix</span>':'<span class="sev ok">Mapped</span>'}</td></tr>`}).join('')}
+    </tbody></table></div>
+  </div>
+  <div class="section panel">
+    <h3>Already-booked seats</h3>
+    <label class="check"><input type="checkbox" data-act="respect" ${S.respectCurrent?'checked':''} ${S.colmap.groups.current_capacity?'':'disabled'}>
+      <span>Treat the "${esc(S.colmap.groups.current_capacity||'Already booked')}" column as seats already taken<br>
+      <span class="small muted">${S.colmap.groups.current_capacity?`Your file lists ${fmt(booked)} booked seats. Leave this off if that column is left over from an earlier run; turn it on if those seats are genuinely occupied.`:'Map an "Already booked" column to use this.'}</span></span></label>
+  </div>
+  <div class="section"><button class="btn primary big" data-go="4" ${stageState(4).on?'':'disabled'}>Run the dry run</button></div>`;
+}
+
+/* Stage 4 */
+function vDry(){
+  const sim=S.sim,f=S.ui.simSev,c=S.ui.simCity;
+  const cities=[...new Set(sim.rows.map(r=>r.city))].sort();
+  let rows=sim.rows;
+  if(f==='actionable')rows=rows.filter(r=>r.sev==='critical'||r.sev==='warning');else if(f!=='all')rows=rows.filter(r=>r.sev===f);
+  if(c!=='all')rows=rows.filter(r=>r.city===c);
+  const rank={critical:0,warning:1,info:2,ok:3};
+  rows=rows.slice().sort((a,b)=>rank[a.sev]-rank[b.sev]||a.gap-b.gap);
+  const maxAbs=Math.max(1,...sim.rows.map(r=>Math.abs(r.gap)));
+  const lvlOf=p=>Object.keys(S.levelMap).filter(l=>S.levelMap[l]===p);
+  const hints=sim.hints.map(h=>`<div class="callout"><strong>Check the level map for ${h.a} and ${h.b}</strong>
+    <p>${h.a} (${esc(lvlOf(h.a).join(', ')||'no levels')}) has ${fmt(h.da)} students for ${fmt(h.ca)} seats, while ${h.b} (${esc(lvlOf(h.b).join(', ')||'no levels')}) has ${fmt(h.db)} students for ${fmt(h.cb)} seats. If these prefixes are swapped, fixing them in Mapping would seat up to ${fmt(Math.min(h.short,h.sur))} more students.</p></div>`).join('');
+  const pill=(v,l)=>`<button type="button" class="pill" data-sim="${v}" aria-pressed="${f===v}">${l}</button>`;
+  const canGo=sim.critical===0||S.ack;
+  return `<div class="head"><h2>Dry run</h2><p class="lede">A full simulation of demand against seats for every city and level. Nothing is allocated yet.</p></div>
+  <div class="stats">
+    <div class="stat"><div class="v">${fmt(sim.demand)}</div><div class="l">Valid students</div></div>
+    <div class="stat"><div class="v">${fmt(sim.seats)}</div><div class="l">Seats available</div></div>
+    <div class="stat ${sim.waitlist?'warn':'ok'}"><div class="v">${fmt(sim.waitlist)}</div><div class="l">Expected waitlist${S.students.length-sim.demand?`, plus ${fmt(S.students.length-sim.demand)} with data errors`:''}</div></div>
+    <div class="stat ${sim.critical?'crit':'ok'}"><div class="v">${fmt(sim.critical)}</div><div class="l">Critical alerts</div></div>
+    <div class="stat ${sim.warning?'warn':''}"><div class="v">${fmt(sim.warning)}</div><div class="l">Capacity warnings</div></div>
+  </div>
+  ${hints?`<div class="section">${hints}</div>`:''}
+  <div class="section">
+    <div class="row" style="margin-bottom:10px"><div class="pills">${pill('actionable','Needs action')}${pill('critical','Critical')}${pill('warning','Warnings')}${pill('info','Unused seats')}${pill('all','All')}</div>
+      <span class="spacer"></span><label class="small muted">City <select data-ui="simCity"><option value="all">All cities</option>${cities.map(x=>`<option ${x===c?'selected':''}>${esc(x)}</option>`).join('')}</select></label></div>
+    ${rows.length?`<div class="tbl"><table><thead><tr><th>City</th><th>Prefix</th><th class="num">Students</th><th class="num">Priority</th><th class="num">Seats</th><th class="num">Gap</th><th>Alert</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td>${esc(r.city)}</td><td>${esc(r.prefix)}</td><td class="num">${fmt(r.demand)}</td><td class="num">${fmt(r.priority)}</td><td class="num">${fmt(r.seats)}</td>
+      <td class="num">${r.gap>0?'+':''}${fmt(r.gap)}<span class="gapbar"><i style="width:${Math.round(Math.abs(r.gap)/maxAbs*100)}%;background:${r.gap<0?'var(--crit)':'var(--ok)'}"></i></span></td>
+      <td class="wrap"><span class="sev ${r.sev}">${r.sev}</span> ${esc(r.msg)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Nothing in this view. Every city and level here has enough seats.</div>'}
+  </div>
+  <div class="section ${sim.critical?'callout crit':'callout ok'}">
+    ${sim.critical?`<strong>${sim.critical} critical alert${sim.critical>1?'s':''} found</strong><p>The cleanest fix is an updated groups file with the missing groups or extra capacity. You can also continue: those students go to the waitlist and appear in the exceptions report.</p>`
+      :'<strong>No critical alerts</strong><p>Every city and level that has students also has groups. Any warnings above end up on the waitlist.</p>'}
+    <div class="row" style="margin-top:12px">
+      <label class="btn filebtn">Upload updated groups file<input type="file" accept=".xlsx,.xls,.csv" data-file="groups"></label>
+      ${sim.critical?`<label class="check"><input type="checkbox" data-act="ack" ${S.ack?'checked':''}><span>I've reviewed the critical alerts and want to continue</span></label>`:''}
+    </div>
+  </div>
+  <div class="section"><button class="btn primary big" data-go="5" ${canGo?'':'disabled'}>Continue to allocation</button></div>`;
+}
+
+/* Stage 5 */
+function vAllocate(){
+  const r=S.result;
+  const blocked=S.sim.critical>0&&!S.ack;
+  let res='';
+  if(r){
+    const k=kpis(S.students,S.groups,r.assign),by={};
+    r.assign.forEach(a=>{if(a.status!=='Assigned')by[a.reason]=(by[a.reason]||0)+1});
+    let fri=0,sat=0;S.groups.forEach(g=>{if(g.day==='friday')fri+=g.enrolled.length;else sat+=g.enrolled.length});
+    res=`<div class="section stats">
+      <div class="stat ok"><div class="v">${fmt(k.assigned)}</div><div class="l">Assigned</div></div>
+      <div class="stat ${k.waitlisted?'warn':'ok'}"><div class="v">${fmt(k.waitlisted)}</div><div class="l">Waitlisted</div></div>
+      <div class="stat"><div class="v">${fmt(fri)}</div><div class="l">In Friday groups</div></div>
+      <div class="stat"><div class="v">${fmt(sat)}</div><div class="l">In other-day groups</div></div>
+      <div class="stat ${k.priWait?'crit':''}"><div class="v">${fmt(k.priWait)} of ${fmt(k.priority)}</div><div class="l">Priority students waitlisted</div></div>
+    </div>
+    <div class="section grid2">
+      <div class="panel"><h3>Why students are waitlisted</h3>${Object.keys(by).length?`<table><tbody>${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([x,n])=>`<tr><td>${REASON[x]||x}</td><td class="num">${fmt(n)}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">Nobody is waitlisted.</p>'}</div>
+      <div class="panel"><h3>Rule checks on the engine's output</h3><table><tbody>
+        <tr><td>Groups over Max Capacity</td><td class="num"><span class="sev ${r.check.over?'error':'ok'}">${r.check.over?r.check.over+' failed':'Passed'}</span></td></tr>
+        <tr><td>Later days used while earlier-day seats were free</td><td class="num"><span class="sev ${r.check.dayOrder?'error':'ok'}">${r.check.dayOrder?r.check.dayOrder+' failed':'Passed'}</span></td></tr>
+        <tr><td>Exact city and prefix match</td><td class="num"><span class="sev ok">Passed</span></td></tr>
+      </tbody></table><p class="small muted" style="margin:10px 0 0">Ran ${r.ranAt.toLocaleTimeString()} in ${r.ms} ms.</p></div>
+    </div>
+    <div class="section row"><button class="btn primary big" data-go="6">Open the adjustment board</button><button class="btn" data-go="7">Go to reports</button></div>`;
+  }
+  return `<div class="head"><h2>Allocate</h2><p class="lede">The engine places students in this order, then fills groups strictly by capacity.</p></div>
+  <div class="panel"><ol class="rules">
+    <li>Priority students first (VIP, disability, son of martyr), then everyone else. Ties go to upload order.</li>
+    <li>Only groups in the student's exact city whose prefix matches their level.</li>
+    <li>Friday groups fill completely, earliest time first, before any Saturday group is used.</li>
+    <li>No group goes over Max Capacity${S.respectCurrent?', counting already-booked seats':''}.</li>
+  </ol></div>
+  <div class="section row"><button class="btn primary big" data-act="run" ${blocked?'disabled':''}>${r?'Run again from scratch':'Run allocation'}</button>
+    ${r&&S.audit.length?`<span class="small muted">Running again discards ${S.audit.length} manual move${S.audit.length>1?'s':''}.</span>`:''}
+    ${blocked?'<span class="small muted">Acknowledge the critical alerts in the dry run first.</span>':''}</div>${res}`;
+}
+function runAllocation(){
+  busy('Allocating students',()=>{
+    const t=performance.now();const assign=allocate(S.students,S.groups);
+    S.result={assign,check:verify(S.groups),ranAt:new Date(),ms:Math.round(performance.now()-t)};S.audit=[];
+    const b=S.ui.board;if(!b.city){const w=waitlistBuckets()[0];if(w){b.city=w.city;b.prefix=w.prefix}}
+    render();toast(`Allocation finished: ${fmt(assign.filter(a=>a.status==='Assigned').length)} assigned.`);
+  });
+}
+
+/* Stage 6 */
+function waitlistBuckets(){
+  const m=new Map(),bk=bucketize(S.groups);
+  S.students.forEach(s=>{if(!s.valid||S.result.assign[s.i].status==='Assigned')return;const k=bkey(s.city,s.prefix);if(bk.has(k))m.set(k,(m.get(k)||0)+1)});
+  return [...m].sort((a,b)=>b[1]-a[1]).map(([k,n])=>{const [city,prefix]=k.split('|');return {city,prefix,n}});
+}
+function vAdjust(){
+  const b=S.ui.board,bk=bucketize(S.groups);
+  const cities=[...new Set([...bk.keys()].map(k=>k.split('|')[0]))].sort();
+  if(!cities.includes(b.city))b.city=cities[0]||'';
+  const wl={};S.students.forEach(s=>{if(s.valid&&s.city===b.city&&S.result.assign[s.i].status!=='Assigned')wl[s.prefix]=(wl[s.prefix]||0)+1});
+  const prefixes=[...bk.keys()].filter(k=>k.startsWith(b.city+'|')).map(k=>k.split('|')[1]).sort();
+  if(!prefixes.includes(b.prefix))b.prefix=prefixes[0]||'';
+  const slots=(bk.get(bkey(b.city,b.prefix))||[]).filter(g=>b.day==='all'||g.day===b.day);
+  const q=b.q.trim().toLowerCase();
+  const chip=si=>{const s=S.students[si],a=S.result.assign[si];
+    return `<button type="button" class="chip ${s.pri?'pri':''} ${a.src==='manual'?'man':''} ${q&&s.name&&s.name.toLowerCase().includes(q)?'hit':''}" draggable="true" data-si="${si}" title="${esc(s.name)} (${esc(s.id)})${s.pri?', priority':''}"><span dir="auto">${esc(s.name||s.id)}</span></button>`};
+  const waiting=S.students.filter(s=>s.valid&&s.city===b.city&&s.prefix===b.prefix&&S.result.assign[s.i].status!=='Assigned')
+    .sort((x,y)=>(y.pri-x.pri)||x.i-y.i);
+  const cards=slots.map(g=>{const u=used(g),cells=[];
+    for(let i=0;i<Math.max(g.max,u);i++)cells.push(`<i class="seat ${i<g.pre?'p':i<g.max?(i<u?'f':''):'x'}"></i>`);
+    return `<div class="gcard ${u>g.max?'overcap':u>=g.max?'full':''}" data-gi="${g.gi}">
+      <div class="ghead"><strong>${esc(g.code)}</strong><span class="day ${g.day}">${title(g.day)} ${g.start}</span></div>
+      <div class="center" dir="auto">${esc(g.center||'')}</div>
+      <div class="seats" role="img" aria-label="${u} of ${g.max} seats used">${cells.join('')}</div>
+      <div class="load">${u} of ${g.max} seats${g.pre?`, ${g.pre} pre-booked`:''}${u>g.max?`, ${u-g.max} over`:''}</div>
+      <div class="chips">${g.enrolled.map(chip).join('')||'<span class="small muted">Empty</span>'}</div></div>`}).join('');
+  const noGroup=S.students.filter(s=>s.valid&&s.city===b.city&&!bk.has(bkey(s.city,s.prefix))).length;
+  const top=waitlistBuckets().slice(0,6);
+  return `<div class="head"><h2>Adjust allocations</h2><p class="lede">Drag a student onto any group card or back to the waitlist. On touch screens, tap a student to move them. Dropping onto a full group asks for an admin override.</p></div>
+  ${top.length?`<div class="row small" style="margin-bottom:14px"><span class="muted">Largest waitlists:</span>${top.map(t=>`<button class="pill" data-jump="${esc(t.city)}|${esc(t.prefix)}">${esc(t.city)} ${esc(t.prefix)} (${fmt(t.n)})</button>`).join('')}</div>`:''}
+  <div class="toolbar">
+    <label>City<select data-board="city">${cities.map(c=>`<option ${c===b.city?'selected':''}>${esc(c)}</option>`).join('')}</select></label>
+    <label>Level prefix<select data-board="prefix">${prefixes.map(p=>`<option value="${esc(p)}" ${p===b.prefix?'selected':''}>${esc(p)}${wl[p]?` (${wl[p]} waiting)`:''}</option>`).join('')}</select></label>
+    <label>Day<select data-board="day"><option value="all">All days</option>${['friday','saturday'].map(d=>`<option value="${d}" ${b.day===d?'selected':''}>${title(d)}</option>`).join('')}</select></label>
+    <label>Find a student<input type="text" data-board="q" value="${esc(b.q)}" placeholder="Type a name" style="width:200px"></label>
+    <span class="spacer"></span>
+    <div class="legend"><span><i style="background:var(--ok)"></i>Allocated</span><span><i style="background:var(--pre)"></i>Pre-booked</span><span><i style="background:var(--line)"></i>Free</span><span><i style="background:var(--crit)"></i>Over capacity</span></div>
+  </div>
+  ${noGroup?`<p class="small muted" style="margin:-6px 0 14px">${fmt(noGroup)} students in ${esc(b.city)} have a level with no groups in this city. They can only be placed after a groups file adds one.</p>`:''}
+  <div class="board">
+    <div class="wait" data-gi="-1"><h3 style="margin:0">Waitlist <span class="muted">(${fmt(waiting.length)})</span></h3>
+      <div class="chips">${waiting.map(s=>chip(s.i)).join('')||'<span class="small muted">Nobody waiting for this city and level.</span>'}</div></div>
+    <div>${cards?`<div class="groups">${cards}</div>`:'<div class="empty">No groups for this day.</div>'}</div>
+  </div>
+  <div class="section"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Change log</h3><span class="spacer"></span>${S.audit.length?'<button class="btn" data-act="undo">Undo last move</button>':''}</div>
+  ${S.audit.length?`<div class="tbl audit" style="max-height:300px"><table><thead><tr><th>Time</th><th>Student</th><th>From</th><th>To</th><th>Override</th><th>Note</th></tr></thead><tbody>
+    ${S.audit.map(a=>`<tr><td>${a.at.toLocaleTimeString()}</td><td dir="auto">${esc(S.students[a.si].name)}</td><td>${a.from>=0?esc(S.groups[a.from].code):'Waitlist'}</td><td>${a.to>=0?esc(S.groups[a.to].code):'Waitlist'}</td><td>${a.over?'<span class="sev error">Over capacity</span>':''}</td><td class="wrap">${esc(a.note)}</td></tr>`).join('')}</tbody></table></div>`
+    :'<p class="muted small">Moves you make are logged here and included in the exceptions report.</p>'}</div>`;
+}
+function attemptMove(si,gi){
+  const a=S.result.assign[si];if(a.g===gi)return;
+  if(gi>=0){const g=S.groups[gi];if(used(g)>=g.max)return openMove(si,gi)}
+  doMove(si,gi,'');
+}
+function doMove(si,gi,note){
+  const a=S.result.assign[si],from=a.g;let over=false;
+  if(from>=0){const e=S.groups[from].enrolled;e.splice(e.indexOf(si),1)}
+  if(gi>=0){const g=S.groups[gi];over=used(g)>=g.max;g.enrolled.push(si);S.result.assign[si]={status:'Assigned',reason:over?'ADMIN_OVERRIDE':'MANUAL_MOVE',g:gi,src:'manual'}}
+  else S.result.assign[si]={status:'Waitlisted',reason:'MANUAL_UNASSIGN',g:-1,src:'manual'};
+  S.audit.unshift({at:new Date(),si,from,to:gi,over,note,prev:a});
+  const y=window.scrollY;render();window.scrollTo(0,y);
+  toast(`${S.students[si].name} moved to ${gi>=0?S.groups[gi].code:'the waitlist'}${over?' as an override':''}.`,true);
+}
+function undoLast(){
+  const e=S.audit.shift();if(!e)return;
+  if(e.to>=0){const l=S.groups[e.to].enrolled;l.splice(l.indexOf(e.si),1)}
+  if(e.from>=0)S.groups[e.from].enrolled.push(e.si);
+  S.result.assign[e.si]=e.prev;const y=window.scrollY;render();window.scrollTo(0,y);toast('Move undone.');
+}
+function openMove(si,preGi){
+  const s=S.students[si],a=S.result.assign[si];
+  const slots=bucketize(S.groups).get(bkey(s.city,s.prefix))||[];
+  const sel=preGi!==undefined?preGi:a.g;
+  const d=$('#dlg');
+  d.innerHTML=`<form method="dialog" class="dlg" id="mvform">
+    <h3 dir="auto">${esc(s.name)}</h3>
+    <div class="small muted">${esc(s.id)}, ${esc(s.city)}, ${esc(s.level)}${s.pri?', priority':''}. Now ${a.g>=0?'in '+esc(S.groups[a.g].code):'on the waitlist'}.</div>
+    <label class="small muted" for="mvsel">Move to</label>
+    <select id="mvsel"><option value="-1" ${sel===-1?'selected':''}>Waitlist</option>${slots.map(g=>`<option value="${g.gi}" ${g.gi===sel?'selected':''}>${esc(g.code)}, ${title(g.day)} ${g.start}, ${used(g)} of ${g.max}${used(g)>=g.max?' (full)':''}</option>`).join('')}</select>
+    <div id="mvwarn" class="warnline small"></div>
+    <label class="small muted" for="mvnote">Note for the change log</label>
+    <input type="text" id="mvnote" placeholder="Reason for this move">
+    <div class="row"><span class="spacer"></span><button type="button" class="btn" value="cancel" id="mvcancel">Cancel</button><button type="submit" class="btn primary" id="mvok">Move student</button></div>
+  </form>`;
+  const upd=()=>{const gi=+$('#mvsel').value,g=gi>=0?S.groups[gi]:null,full=g&&gi!==a.g&&used(g)>=g.max;
+    $('#mvwarn').textContent=full?`${g.code} is full (${used(g)} of ${g.max}). Moving here is an admin override and puts the group over capacity.`:'';
+    $('#mvok').textContent=full?'Override and move':'Move student';$('#mvok').disabled=gi===a.g};
+  $('#mvsel').onchange=upd;upd();
+  $('#mvcancel').onclick=()=>d.close();
+  $('#mvform').onsubmit=e=>{e.preventDefault();const gi=+$('#mvsel').value,note=$('#mvnote').value.trim();d.close();if(gi!==a.g)doMove(si,gi,note)};
+  d.showModal();
+}
+
+/* Stage 7 */
+function vReports(){
+  const k=kpis(S.students,S.groups,S.result.assign);
+  const byCity={};
+  S.students.forEach(s=>{const c=s.city||'(blank)';const o=byCity[c]||(byCity[c]={students:0,assigned:0,seats:0});o.students++;if(S.result.assign[s.i].status==='Assigned')o.assigned++});
+  S.groups.forEach(g=>{if(!g.valid)return;const o=byCity[g.city]||(byCity[g.city]={students:0,assigned:0,seats:0});o.seats+=g.max-g.pre});
+  const overs=S.groups.filter(g=>g.valid&&used(g)>g.max).length;
+  const disabled=S.dl===null?'disabled':'';
+  return `<div class="head"><h2>Reports and export</h2><p class="lede">Figures include any manual moves made on the adjustment board.</p></div>
+  <div class="stats">
+    <div class="stat"><div class="v">${fmt(k.total)}</div><div class="l">Total students</div></div>
+    <div class="stat ok"><div class="v">${fmt(k.assigned)}</div><div class="l">Allocated</div></div>
+    <div class="stat ${k.waitlisted?'warn':''}"><div class="v">${fmt(k.waitlisted)}</div><div class="l">Waitlisted</div></div>
+    <div class="stat"><div class="v">${pct(k.util)}</div><div class="l">Capacity utilization</div></div>
+    <div class="stat ${overs?'crit':''}"><div class="v">${fmt(overs)}</div><div class="l">Groups over capacity</div></div>
+  </div>
+  <div class="section grid2">
+    <div class="panel"><h3>Master sheet</h3><p class="small muted">Every student with all original columns, plus status, group, center, day and time.</p><button class="btn primary" data-act="x-master" ${disabled}>Export master sheet</button></div>
+    <div class="panel"><h3>Vendors sheet</h3><p class="small muted">Assigned students sorted by city, center, day, time and group, with seat numbers, plus a per-center summary for printing.</p><button class="btn primary" data-act="x-vendors" ${disabled}>Export vendors sheet</button></div>
+    <div class="panel"><h3>Exceptions report</h3><p class="small muted">Waitlist with reasons (priority first), admin overrides, over-capacity groups, validation issues and dry-run alerts.</p><button class="btn primary" data-act="x-exceptions" ${disabled}>Export exceptions report</button></div>
+  </div>
+  ${S.dl===null?'<p class="small muted">File downloads aren\'t available in this view.</p>':''}
+  <div class="section"><h3>By city</h3><div class="tbl"><table><thead><tr><th>City</th><th class="num">Students</th><th class="num">Allocated</th><th class="num">Waitlisted</th><th class="num">Seats</th><th>Seat utilization</th></tr></thead><tbody>
+  ${Object.entries(byCity).sort((a,b)=>b[1].students-a[1].students).map(([c,o])=>{const u=o.seats?o.assigned/o.seats:0;
+    return `<tr><td>${esc(c)}</td><td class="num">${fmt(o.students)}</td><td class="num">${fmt(o.assigned)}</td><td class="num">${fmt(o.students-o.assigned)}</td><td class="num">${fmt(o.seats)}</td><td><span class="ubar"><i style="width:${Math.min(100,u*100)}%"></i></span>${o.seats?pct(u):'No groups'}</td></tr>`}).join('')}
+  </tbody></table></div></div>`;
+}
+
+/* ---------- exports ---------- */
+function groupInfo(gi){const g=gi>=0?S.groups[gi]:null;return g?{'Group Code':g.code,'Center':g.center,'Center Code':g.centerCode,'Day':title(g.day),'Start':g.start,'End':g.end}:{'Group Code':'','Center':'','Center Code':'','Day':'','Start':'','End':''}}
+async function saveBook(sheets,filename){
+  if(S.dl===undefined){toast('Downloads are still starting up. Try again in a moment.');return}
+  if(!S.dl){toast('File downloads aren\'t available in this view.');return}
+  await busy('Building '+filename,async()=>{
+    const wb=XLSX.utils.book_new();
+    for(const [name,rows] of sheets){
+      const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{Note:'No rows'}]);
+      const keys=Object.keys(rows[0]||{Note:1});
+      ws['!cols']=keys.map(k=>({wch:Math.min(45,Math.max(10,k.length+2,...rows.slice(0,200).map(r=>String(r[k]??'').length+2)))}));
+      XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31));
+    }
+    const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    try{await S.dl.save({filename,data:new Blob([buf])});toast('Saved '+filename)}
+    catch(e){toast(e&&e.code==='declined'?'Download cancelled.':'Could not save the file: '+((e&&(e.message||e.code))||'unknown error'))}
+  });
+}
+const stamp=()=>new Date().toISOString().slice(0,10);
+function kpiRows(){const k=kpis(S.students,S.groups,S.result.assign);return [
+  {KPI:'Total students',Value:k.total},{KPI:'Allocated',Value:k.assigned},{KPI:'Waitlisted',Value:k.waitlisted},
+  {KPI:'Seats offered',Value:k.seats},{KPI:'Capacity utilization',Value:pct(k.util)},{KPI:'Priority students',Value:k.priority},
+  {KPI:'Priority waitlisted',Value:k.priWait},{KPI:'Manual moves',Value:S.audit.length},{KPI:'Already-booked seats counted',Value:S.respectCurrent?'Yes':'No'},{KPI:'Exported',Value:new Date().toLocaleString()}]}
+function exportMaster(){
+  const rows=S.students.map(s=>{const a=S.result.assign[s.i];
+    return {...s.raw,'System ID':s.id,'City (normalized)':s.city,'Level (normalized)':s.level,'Prefix':s.prefix,'Priority':s.pri?'Yes':'No',
+      'Status':a.status,'Reason':a.reason?(REASON[a.reason]||a.reason):'',...groupInfo(a.g),'Source':a.src==='manual'?'Manual':'Engine'}});
+  saveBook([['Master',rows],['KPIs',kpiRows()]],`master-sheet-${stamp()}.xlsx`);
+}
+function exportVendors(){
+  const rank=g=>[g.city||'',g.center||'',DAY_RANK[g.day],g.start||'',g.code];
+  const gs=S.groups.filter(g=>g.valid&&g.enrolled.length).sort((a,b)=>cmpArr(rank(a),rank(b)));
+  const rows=[],sum={};
+  for(const g of gs){
+    const names=g.enrolled.map(si=>S.students[si]).sort((a,b)=>cmpStr(a.name,b.name));
+    names.forEach((s,i)=>rows.push({'City':g.city,'Center':g.center,'Center Code':g.centerCode,'Day':title(g.day),'Start':g.start,'End':g.end,'Group Code':g.code,'Seat':i+1,'Student ID':s.id,'Name':s.name,'Level':s.level,'Priority':s.pri?'Yes':''}));
+    const key=g.city+'|'+g.center;const o=sum[key]||(sum[key]={'City':g.city,'Center':g.center,'Center Code':g.centerCode,'Groups':0,'Friday groups':0,'Saturday groups':0,'Students':0,'Seats':0});
+    o.Groups++;if(g.day==='friday')o['Friday groups']++;else o['Saturday groups']++;o.Students+=g.enrolled.length;o.Seats+=g.max;
+  }
+  saveBook([['By center',rows],['Center summary',Object.values(sum)]],`vendors-sheet-${stamp()}.xlsx`);
+}
+function exportExceptions(){
+  const wl=S.students.filter(s=>S.result.assign[s.i].status!=='Assigned').sort((a,b)=>(b.pri-a.pri)||cmpStr(a.city,b.city)||cmpStr(a.level,b.level)||a.i-b.i)
+    .map(s=>({'Student ID':s.id,'Name':s.name,'City':s.city,'Level':s.level,'Prefix':s.prefix,'Priority':s.pri?'Yes':'No','Source row':s.row,'Reason':REASON[S.result.assign[s.i].reason]||S.result.assign[s.i].reason}));
+  const ov=S.audit.slice().reverse().map(a=>({'Time':a.at.toLocaleString(),'Student ID':S.students[a.si].id,'Name':S.students[a.si].name,'From':a.from>=0?S.groups[a.from].code:'Waitlist','To':a.to>=0?S.groups[a.to].code:'Waitlist','Over capacity':a.over?'Yes':'No','Note':a.note}));
+  const oc=S.groups.filter(g=>g.valid&&used(g)>g.max).map(g=>({'Group Code':g.code,'City':g.city,'Center':g.center,'Day':title(g.day),'Start':g.start,'Max':g.max,'Used':used(g),'Over by':used(g)-g.max}));
+  const vi=S.issues.map(i=>({'File':i.entity,'Row':i.row,'Record':i.key,'Severity':i.sev,'Issue':i.code,'Detail':i.msg}));
+  const dr=S.sim.rows.filter(r=>r.sev!=='ok').map(r=>({'City':r.city,'Prefix':r.prefix,'Students':r.demand,'Priority':r.priority,'Seats':r.seats,'Gap':r.gap,'Severity':r.sev,'Alert':r.msg}));
+  saveBook([['Waitlist',wl],['Manual moves',ov],['Over capacity groups',oc],['Validation issues',vi],['Dry-run alerts',dr]],`exceptions-report-${stamp()}.xlsx`);
+}
+function exportTemplate(kind){
+  const s=kind==='students'
+    ?[{student_id:'29801011234567',full_name:'Ahmed Osama Ali',city:'cairo',level:'third_web',is_vip:'No',is_disability:'No',is_martyr_son:'No'}]
+    :[{'Group Code':'L3WB_0001','City':'cairo','Max Capacity':20,'Current Capacity':0,'Center Name':'Nasr City Training Center','Center Code':'CAI_C01','Slot 1 Day':'Friday','Slot 1 Start':'09:00','Slot 1 End':'12:00'}];
+  const notes=kind==='students'?[
+    {Column:'student_id',Required:'Yes',Notes:'Unique per student, such as a national ID. Used to catch duplicates.'},
+    {Column:'full_name',Required:'Yes',Notes:'Arabic or English.'},
+    {Column:'city',Required:'Yes',Notes:'Same spelling as the groups file. Case and spaces are normalized, so "Kafr El Sheikh" matches "kafr_el_sheikh".'},
+    {Column:'level',Required:'Yes',Notes:'For example first, second, third_web, forth_ai. Each level is mapped to a group prefix in the app.'},
+    {Column:'is_vip, is_disability, is_martyr_son',Required:'No',Notes:'Yes or No. Any Yes makes the student a priority student.'}]
+   :[{Column:'Group Code',Required:'Yes',Notes:'Prefix, underscore, number, such as L3WB_0001. The prefix links the group to a student level.'},
+    {Column:'City',Required:'Yes',Notes:'Same spelling as the students file.'},
+    {Column:'Max Capacity',Required:'Yes',Notes:'Whole number above zero.'},
+    {Column:'Current Capacity',Required:'No',Notes:'Seats already taken. Only used if you turn that setting on.'},
+    {Column:'Slot 1 Day',Required:'Yes',Notes:'Friday or Saturday (any weekday works). Friday groups fill first.'},
+    {Column:'Slot 1 Start, Slot 1 End',Required:'Start yes',Notes:'24-hour time such as 14:00.'}];
+  saveBook([[kind==='students'?'Students':'Groups',s],['How to fill',notes]],`${kind}-template.xlsx`);
+}
+
+/* ---------- demo data ---------- */
+function loadDemo(){
+  let seed=20261005;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  const pickW=items=>{let r=rnd(),acc=0;for(const [v,w] of items){acc+=w;if(r<acc)return v}return items[items.length-1][0]};
+  const first=['Ahmed','Mohamed','Mariam','Omar','Nour','Youssef','Salma','Karim','Hana','Ali','Laila','Ziad','Farida','Hassan','Malak','Adam','Jana','Mostafa','Rana','Seif'];
+  const last=['Hassan','Ibrahim','Mahmoud','Abdelrahman','Saleh','Fathy','Mansour','Gamal','Sherif','Nabil','Kamal','Lotfy','Shaker','Ragab'];
+  const cityW=[['Cairo',.38],['Alexandria',.24],['Giza',.18],['Fayoum',.12],['Aswan',.08]];
+  const levelW=[['first',.36],['second',.28],['third_ai',.08],['third_web',.06],['third_cyber_security',.06],['third_digital',.05],['forth_cyber_security',.04],['forth_ai',.03],['fifth_web',.03],['sixth_robotics',.01]];
+  const students=[];
+  for(let i=0;i<3000;i++){
+    let city=pickW(cityW);const v=rnd();if(v<.05)city=city.toUpperCase();else if(v<.1)city=' '+city.toLowerCase()+' ';
+    students.push({student_id:'S'+String(10000+i),full_name:`${first[Math.floor(rnd()*first.length)]} ${last[Math.floor(rnd()*last.length)]} ${last[Math.floor(rnd()*last.length)]}`,
+      city,level:pickW(levelW),is_vip:rnd()<.02?'Yes':'No',is_disability:rnd()<.01?'Yes':'No',is_martyr_son:rnd()<.01?'Yes':'No'});
+  }
+  students.push({...students[10]},{...students[200]});students[57].full_name='';
+  const demand={};for(const s of students){const c=normKey(s.city),p=defaultPrefix(normKey(s.level));if(p){const k=c+'|'+p;demand[k]=(demand[k]||0)+1}}
+  const factor=k=>k==='alexandria|L1'?.8:k==='giza|L3DA'?.6:k==='fayoum|L4CY'||k==='aswan|L3DA'?0:1.12;
+  const centers={cairo:['Nasr City Training Center','Heliopolis Tech Hub','Maadi Skills Lab'],alexandria:['Smouha Center','Sidi Gaber Lab'],giza:['Dokki Center','6th of October Hub'],fayoum:['Fayoum Youth Center'],aswan:['Aswan Tech Center']};
+  const groups=[],counter={};
+  for(const [k,d] of Object.entries(demand)){
+    const [city,prefix]=k.split('|');const n=Math.ceil(d*factor(k)/20);
+    for(let j=0;j<n;j++){
+      counter[prefix]=(counter[prefix]||0)+1;const cs=centers[city];const st=['09:00','12:00','15:00'][j%3];
+      groups.push({'Group Code':`${prefix}_${String(counter[prefix]).padStart(4,'0')}`,'City':city,'Max Capacity':20,'Current Capacity':0,
+        'Center Name':cs[j%cs.length],'Center Code':city.slice(0,3).toUpperCase()+'_C0'+(j%cs.length+1),'Slot 1 Day':j%5<2?'Friday':'Saturday','Slot 1 Start':st,'Slot 1 End':String(+st.slice(0,2)+3).padStart(2,'0')+':00'});
+    }
+  }
+  groups[3]['Max Capacity']=-5;groups[8]['Slot 1 Start']='';groups[12]['Current Capacity']=25;
+  const toParsed=rows=>({headers:Object.keys(rows[0]),rows});
+  S.raw={students:null,groups:null};S.levelMap={};
+  setRaw('students','demo-students (generated)','Students',toParsed(students));
+  setRaw('groups','demo-groups (generated)','Groups',toParsed(groups));
+  rebuild(true);render();toast('Demo data loaded: 3,002 students and '+fmt(groups.length)+' groups.');
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-go],[data-act],[data-sim],[data-jump],.chip');if(!t)return;
+  if(t.matches('.chip')){openMove(+t.dataset.si);return}
+  if(t.dataset.go){go(+t.dataset.go);return}
+  if(t.dataset.sim){S.ui.simSev=t.dataset.sim;render();return}
+  if(t.dataset.jump){const [c,p]=t.dataset.jump.split('|');Object.assign(S.ui.board,{city:c,prefix:p,day:'all'});render();return}
+  const act=t.dataset.act;
+  if(act==='demo')loadDemo();
+  else if(act==='tpl-students')exportTemplate('students');
+  else if(act==='tpl-groups')exportTemplate('groups');
+  else if(act==='run')runAllocation();
+  else if(act==='undo')undoLast();
+  else if(act==='x-master')exportMaster();
+  else if(act==='x-vendors')exportVendors();
+  else if(act==='x-exceptions')exportExceptions();
+  else if(act==='preset-save'){const n=$('#presetName').value.trim();if(!n){toast('Give the preset a name first.');return}
+    const p=loadPresets();p[n]={...S.levelMap};toast(savePresets(p)?`Saved preset "${n}".`:'This browser blocked saving presets.');render()}
+  else if(act==='preset-load'){const n=$('#presetSel').value,p=loadPresets()[n];if(p)changeSettings(()=>{Object.assign(S.levelMap,p)});toast(`Applied preset "${n}".`)}
+  else if(act==='preset-del'){const n=$('#presetSel').value,p=loadPresets();delete p[n];savePresets(p);render();toast(`Deleted preset "${n}".`)}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.file&&t.files[0]){loadFile(t.dataset.file,t.files[0]);t.value='';return}
+  if(t.dataset.map){changeSettings(()=>{if(t.value)S.colmap[t.dataset.map][t.dataset.field]=t.value;else delete S.colmap[t.dataset.map][t.dataset.field]});return}
+  if(t.dataset.level!==undefined){const v=t.value.trim().toUpperCase();changeSettings(()=>{S.levelMap[t.dataset.level]=v});return}
+  if(t.dataset.ui){S.ui[t.dataset.ui]=t.value;render();return}
+  if(t.dataset.board&&t.dataset.board!=='q'){S.ui.board[t.dataset.board]=t.value;render();return}
+  if(t.dataset.act==='respect'){changeSettings(()=>{S.respectCurrent=t.checked});return}
+  if(t.dataset.act==='ack'){S.ack=t.checked;render();return}
+});
+let qTimer;
+document.addEventListener('input',e=>{const t=e.target;if(t.dataset.board==='q'){clearTimeout(qTimer);qTimer=setTimeout(()=>{S.ui.board.q=t.value;render();const i=document.querySelector('[data-board="q"]');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}
+  const hit=document.querySelector('.chip.hit');if(hit)hit.scrollIntoView({block:'nearest'})},250)}});
+/* drag and drop: files */
+document.addEventListener('dragover',e=>{
+  const z=e.target.closest('[data-drop]');if(z&&e.dataTransfer.types.includes('Files')){e.preventDefault();z.classList.add('over');return}
+  const g=e.target.closest('[data-gi]');if(g&&e.dataTransfer.types.includes('text/x-si')){e.preventDefault();e.dataTransfer.dropEffect='move';g.classList.add(g.matches('.wait')?'over':'over-drop')}
+});
+document.addEventListener('dragleave',e=>{const z=e.target.closest('[data-drop],[data-gi]');if(z&&!z.contains(e.relatedTarget))z.classList.remove('over','over-drop')});
+document.addEventListener('drop',e=>{
+  const z=e.target.closest('[data-drop]');
+  if(z&&e.dataTransfer.files.length){e.preventDefault();z.classList.remove('over');loadFile(z.dataset.drop,e.dataTransfer.files[0]);return}
+  const g=e.target.closest('[data-gi]');const si=e.dataTransfer.getData('text/x-si');
+  if(g&&si!==''){e.preventDefault();g.classList.remove('over','over-drop');attemptMove(+si,+g.dataset.gi)}
+});
+document.addEventListener('dragstart',e=>{const c=e.target.closest('.chip');if(c){e.dataTransfer.setData('text/x-si',c.dataset.si);e.dataTransfer.effectAllowed='move'}});
+window.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('Files'))e.preventDefault()});
+window.addEventListener('drop',e=>{if(!e.target.closest('[data-drop]'))e.preventDefault()});
+
+render();
+</script>
+</body>
+</html>
