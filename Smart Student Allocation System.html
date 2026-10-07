@@ -414,7 +414,27 @@ const title=s=>s?s.charAt(0).toUpperCase()+s.slice(1):'';
 const used=g=>g.enrolled.length+g.pre;
 
 /* capabilities: file downloads */
-(async()=>{try{S.dl=(window.claude&&typeof window.claude.use==='function')?await window.claude.use('downloads'):null}catch(e){S.dl=null}render()})();
+(async()=>{
+  try{
+    if(window.claude&&typeof window.claude.use==='function'){
+      S.dl=await window.claude.use('downloads');
+    }else{
+      S.dl={
+        save:async({filename,data})=>{
+          const url=URL.createObjectURL(data);
+          const a=document.createElement('a');
+          a.href=url;
+          a.download=filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(()=>URL.revokeObjectURL(url),1000);
+        }
+      };
+    }
+  }catch(e){S.dl=null}
+  render();
+})();
 
 let toastTimer;
 function toast(msg,undo){
