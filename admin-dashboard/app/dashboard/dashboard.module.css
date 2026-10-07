@@ -1,0 +1,68 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink, #15263A);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  color: var(--muted, #58697D);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background-color: var(--panel, #FFFFFF);
+  border: 1px solid var(--line, #D3DAE3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(21, 38, 58, 0.08);
+  border-color: var(--brand, #1C5DA6);
+}
+
+.cardIcon {
+  width: 48px;
+  height: 48px;
+  background-color: var(--chip, #E4EBF3);
+  color: var(--brand, #1C5DA6);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink, #15263A);
+}
+
+.cardText {
+  color: var(--muted, #58697D);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
